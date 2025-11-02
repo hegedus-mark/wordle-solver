@@ -1,12 +1,50 @@
 {% extends "base.html" %}
 {% block content %}
+<div class="mode-selector">
+    <label for="game-mode">Game Mode:</label>
+    <select id="game-mode" onchange="onModeChange()">
+        <option value="auto">Auto Answer</option>
+        <option value="manual-answer">Manual Answer</option>
+        <option value="manual-feedback">Manual Feedback</option>
+    </select>
+    <input type="text" id="manual-answer-input" placeholder="Type answer"
+        style="display:none;" />
+    <button id="manual-answer-start" style="display:none;"
+        onclick="startGame()">Start Game</button>
+</div>
 <div class="flex flex-col justify-center content-center">
     <div class="main-container">
         <div class="wordle_container">
             <div id="grid"></div>
         </div>
-        <div id="options-panel">
-            <div id="loading-options" style="display: none;">Loading...</div>
+        <div class="flex flex-col">
+            <div class="btn-container" style="margin-top: 10px;">
+                <button
+                    class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+                    onclick="loadFullOptions()">Toggle Full Options</button>
+            </div>
+            <div id="full-options-panel" style="display:none; margin-top:20px;">
+                <div id="loading-options" style="display: none;">Loading...
+                </div>
+                <div style="display:flex; gap:20px;">
+                    <div style="flex:1;">
+                        <h3>Viable Answers</h3>
+                        <input type="text" id="search-answers"
+                            placeholder="Search answers..."
+                            oninput="filterFullOptions()"
+                            style="width:100%; margin-bottom:5px;">
+                        <ul id="full-viable-answers"></ul>
+                    </div>
+                    <div style="flex:1;">
+                        <h3>Viable Guesses</h3>
+                        <input type="text" id="search-guesses"
+                            placeholder="Search guesses..."
+                            oninput="filterFullOptions()"
+                            style="width:100%; margin-bottom:5px;">
+                        <ul id="full-viable-guesses"></ul>
+                    </div>
+                </div>
+            </div>
             <div id="options-panel">
                 <div id="total-remaining"
                     style="font-weight:bold; margin-bottom:10px;">Remaining
@@ -50,6 +88,7 @@
                 </div>
             </div>
         </div>
+
     </div>
 
     <div class="btn-container">
@@ -59,6 +98,10 @@
         <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2
         px-4 rounded" onclick="restartGame()">Restart</button>
     </div>
+    <div id="feedback-log"
+        style="flex-grow: 0; margin-top:10px; max-height:150px; overflow-y:auto; background:#f5f5f5; padding:5px; border:1px solid #ccc; font-family:monospace;">
+    </div>
+
 </div>
 
 <p id="message"></p>

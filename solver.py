@@ -307,20 +307,17 @@ def simulate_one_answer(answer, words, feedback_matrix, word_to_index, max_guess
         if fb_str == "GGGGG":
             return turn, True, history
 
-        # compute remaining after this feedback
         remaining = filter_words(words, feedback_matrix, word_to_index, history)
         remaining_set = set(remaining.tolist())
         if len(remaining) == 0:
             return None, False, history
 
-        # recompute metrics for next guess
         _, results = next_best_guesses(words, feedback_matrix, word_to_index, history)
         guess = choose_guess_from_results(results, remaining_set, strategy=strategy)
 
-    # exhausted guesses
     return None, False, history
 
-# MULTI PROCESS HELPERS (top-level)
+# MULTI PROCESS HELPERS 
 _global_data = {}
 
 def init_worker(words_path, feedback_matrix_path, word_to_index_path):
@@ -444,16 +441,12 @@ def simulate_all_answers(words, feedback_matrix, word_to_index,
         "start_ts": start_ts.isoformat(),
     }
 
-    failed_games = [row for row in per_answer_rows if row.get("solved") == False]
-
-    # Save outputs (same as before)
     csv_path = os.path.join(save_dir, f"simulation_{strategy}_{'withfirst' if first_guess else 'nofirst'}.csv")
     with open(csv_path, "w", newline="", encoding="utf8") as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=["answer", "solved", "guesses_taken", "history"])
         writer.writeheader()
         writer.writerows(per_answer_rows)
 
-    # save summary npz
     np.savez(os.path.join(save_dir, f"summary_{strategy}.npz"), **summary)
 
     print("\nSimulation complete.")
