@@ -103,58 +103,49 @@ function toggleLoadingOptions() {
 function updateBestOptions() {
     toggleLoadingOptions();
 
-    const entropyTop = document.getElementById('entropy-top');
-    const entropyBottom = document.getElementById('entropy-bottom');
-    const expectedTop = document.getElementById('expected-top');
-    const expectedBottom = document.getElementById('expected-bottom');
-    const totalRemaining = document.getElementById('total-remaining');
+    const sections = {
+        entropyTop: document.getElementById('entropy-top'),
+        entropyBottom: document.getElementById('entropy-bottom'),
+        expectedTop: document.getElementById('expected-top'),
+        expectedBottom: document.getElementById('expected-bottom'),
+        viableAnswers: document.getElementById('viable-answers'),
+        topRemaining: document.getElementById('top-remaining'),
+        botRemaining: document.getElementById('bot-remaining'),
+        totalRemaining: document.getElementById('total-remaining')
+    };
 
-    entropyTop.innerHTML = '';
-    entropyBottom.innerHTML = '';
-    expectedTop.innerHTML = '';
-    expectedBottom.innerHTML = '';
+    // Clear all lists
+    Object.values(sections).forEach(el => { if (el) el.innerHTML = ''; });
 
     fetch('/best_options?' + new URLSearchParams({ history: JSON.stringify(sessionHistoryArray) }))
         .then(res => res.json())
         .then(data => {
-            totalRemaining.textContent = `Remaining words: ${data.total_remaining}`;
+            sections.totalRemaining.textContent = `Remaining words: ${data.total_remaining}`;
 
             function makeClickableLi(item, label) {
                 const li = document.createElement('li');
-                li.innerHTML = `<strong>${item.word.toUpperCase()}</strong> ${label}`;
+                li.innerHTML = `<strong>${item[0].toUpperCase()}</strong> ${label}`;
                 li.style.cursor = 'pointer';
                 li.addEventListener('click', () => {
                     localStorage.setItem('wordle_history', JSON.stringify(sessionHistoryArray));
-
                     const url = new URL(window.location.origin + '/distribution');
-                    url.searchParams.set('guess', item.word);
+                    url.searchParams.set('guess', item[0]);
                     url.searchParams.set('history', JSON.stringify(sessionHistoryArray));
                     window.location.href = url.toString();
                 });
                 return li;
             }
 
-            /// Entropy lists
-            data.top_entropy.forEach(item => {
-                entropyTop.appendChild(makeClickableLi(item, `(${item.entropy.toFixed(2)} bits)`));
-            });
+            // Top/Bottom entropy
+            data.top_entropy.forEach(item => sections.entropyTop.appendChild(makeClickableLi(item, `(${item[1].toFixed(2)} bits)`)));
+            data.bot_entropy.forEach(item => sections.entropyBottom.appendChild(makeClickableLi(item, `(${item[1].toFixed(2)} bits)`)));
 
-            if (data.bot_entropy) {
-                data.bot_entropy.forEach(item => {
-                    entropyBottom.appendChild(makeClickableLi(item, `(${item.entropy.toFixed(2)} bits)`));
-                });
-            }
+            // Top/Bottom expected remaining
+            data.top_remaining.forEach(item => sections.topRemaining.appendChild(makeClickableLi(item, `(${item[2].toFixed(1)} rem)`)));
+            data.bot_remaining.forEach(item => sections.botRemaining.appendChild(makeClickableLi(item, `(${item[2].toFixed(1)} rem)`)));
 
-            // Expected remaining lists
-            data.top_expected_remaining.forEach(item => {
-                expectedTop.appendChild(makeClickableLi(item, `(${item.expected_remaining.toFixed(1)} rem)`));
-            });
-            
-            if (data.bot_expected_remaining) {
-                data.bot_expected_remaining.forEach(item => {
-                    expectedBottom.appendChild(makeClickableLi(item, `(${item.expected_remaining.toFixed(1)} rem)`));
-                });
-            }
+            // Viable answers
+            data.viable_answers.forEach(item => sections.viableAnswers.appendChild(makeClickableLi(item, `(${item[1].toFixed(2)} bits, ${item[2].toFixed(1)} rem)`)));
 
             toggleLoadingOptions();
         })

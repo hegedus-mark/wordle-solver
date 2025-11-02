@@ -9,7 +9,8 @@ import os
 import cProfile
 import pstats
 
-CLEAN_METRICS_CACHE_FILE = "data/best_options.npy"
+NO_HISTORY_CACHE_FILE = "data/no_history_guesses_cache.npz"
+
 
 
 #region Data
@@ -46,7 +47,6 @@ def read_word_dataset(letters_count:int, take: int = None):
         if take is not None and take < len(words):
             words = random.sample(words, take)
         return words
-
 
 
 
@@ -142,50 +142,124 @@ def compute_metrics_numba(feedback_matrix, remaining_indices):
 
     return entropies, expected_remaining
 
+def save_best_guesses(results, remaining):
+    print("Caching no-history results...")
+    names = np.array([r[0] for r in results])
+    entropies = np.array([r[1] for r in results], dtype=np.float32)
+    expected_remaining = np.array([r[2] for r in results], dtype=np.float32)
+    remaining_arr = np.array(remaining)
 
-def save_best_options(words, feedback_matrix):
-    entropies, expected_remaining = compute_metrics_numba(
-        feedback_matrix, remaining_indices=list(range(len(words)))
+    np.savez(
+        NO_HISTORY_CACHE_FILE,
+        names=names,
+        entropies=entropies,
+        expected_remaining=expected_remaining,
+        remaining=remaining_arr
     )
-    results = np.zeros((len(words), 3), dtype=np.float32)  
-    results[:,0] = entropies
-    results[:,1] = expected_remaining
-    np.save(CLEAN_METRICS_CACHE_FILE, results)
+#endregion
 
-def load_best_options():
-    if os.path.exists(CLEAN_METRICS_CACHE_FILE):
-        return np.load(CLEAN_METRICS_CACHE_FILE)
-    return None
-
+#region UI
 def next_best_guesses(words, feedback_matrix, word_to_index, history):
-    remaining = filter_words(words, feedback_matrix, word_to_index, history)
-    remaining_indices = [word_to_index[w] for w in remaining]
-
-    if len(remaining) == 1:
-        print(f"\nOnly one possible answer remains: {remaining[0]}")
-        print("Entropy = 0 bits (certainty achieved).")
-        return [(remaining[0], 0.0), remaining[0]]
-    
-    entropies, expected_remaining = compute_metrics_numba(feedback_matrix, remaining_indices)
-
-    results = [(words[i], float(entropies[i]), float(expected_remaining[i])) for i in range(len(words))]
-
-    return results, remaining
-
-def load_best_guesses_for_history(history):
-    words, feedback_matrix, word_to_index = load_feedback_data()
-    if(len(history) != 0):
-        results, remaining = next_best_guesses(words, feedback_matrix, word_to_index, history)
+    # --- Load cache for no-history case ---
+    if not history and os.path.exists(NO_HISTORY_CACHE_FILE):
+        print("Loaded cached no-history results.")
+        data = np.load(NO_HISTORY_CACHE_FILE, allow_pickle=False)
+        results = list(zip(data["names"], data["entropies"], data["expected_remaining"]))
+        remaining = data["remaining"].tolist()
     else:
-        results = load_best_options()
-        if (results is None):
-            results, remaining =  next_best_guesses(words, feedback_matrix, word_to_index, [])
-            save_best_options(words, feedback_matrix)
-        else:
-            remaining = words
+        # --- Compute viable remaining answers ---
+        remaining = filter_words(words, feedback_matrix, word_to_index, history)
+        remaining_indices = [word_to_index[w] for w in remaining]
 
-    return results, remaining
+        if len(remaining) == 0:
+            return None
+
+        # Compute metrics
+        entropies, expected_remaining = compute_metrics_numba(feedback_matrix, remaining_indices)
+        results = [(words[i], float(entropies[i]), float(expected_remaining[i])) for i in range(len(words))]
+
+        # Cache no-history results
+        if not history and not os.path.exists(NO_HISTORY_CACHE_FILE):
+            save_best_guesses(results, remaining)
+
+    return remaining, results
+
+def load_options_sections(history):
+    words, feedback_matrix, word_to_index = load_feedback_data()
+    data = next_best_guesses(words, feedback_matrix, word_to_index, history)
+    if data is None:
+        return {"remaining_count": 0, "viable_answers": []}
     
+    remaining, results = data
+
+    if len(remaining) >= 1:
+        filtered_results = [
+            (w, float(e), float(er))   # <-- Convert here
+            for (w, e, er) in results
+            if float(e) > 0.0 and float(er) < len(remaining)
+        ]
+    else:
+        filtered_results = [(w, float(e), float(er)) for (w, e, er) in results]
+
+    remaining_set = set(remaining)
+    viable_results = [r for r in filtered_results if r[0] in remaining_set]
+    sorted_viable = sorted(viable_results, key=lambda x: x[1], reverse=True)
+    sorted_entropy = sorted(filtered_results, key=lambda x: x[1], reverse=True)
+    sorted_remaining = sorted(filtered_results, key=lambda x: x[2])
+
+    top_n = 10 
+
+    viable = sorted_viable[:20] 
+
+    top_entropy = sorted_entropy[:top_n]
+    bot_entropy = sorted_entropy[-top_n:] if len(sorted_entropy) > top_n else sorted_entropy
+
+    top_remaining = sorted_remaining[:top_n]
+    bot_remaining = sorted_remaining[-top_n:] if len(sorted_remaining) > top_n else sorted_remaining
+
+    return {
+        "remaining_count": len(remaining),
+        "viable_answers": viable,
+        "top_entropy": top_entropy,
+        "bot_entropy": bot_entropy,
+        "top_remaining": top_remaining,
+        "bot_remaining": bot_remaining,
+    }
+
+def load_distribution_data(guess, history):
+    words, feedback_matrix, word_to_index = load_feedback_data()
+
+    remaining = filter_words(words, feedback_matrix, word_to_index, history)
+    N = len(remaining)
+    if N == 0:
+        return {"guess": guess, "total_remaining": 0, "expected_remaining": 0.0}
+
+    g_idx = word_to_index[guess]
+    remaining_indices = np.array([word_to_index[w] for w in remaining])
+
+    fb_codes = feedback_matrix[g_idx, remaining_indices]
+
+    remaining_counts = np.zeros(N, dtype=np.int32)
+    for i, ans_idx in enumerate(remaining_indices):
+        fb_code = feedback_matrix[g_idx, ans_idx]
+        remaining_counts[i] = np.sum(fb_codes == fb_code)
+
+    expected_remaining = float(np.mean(remaining_counts))
+
+    unique_counts, occurrences = np.unique(remaining_counts, return_counts=True)
+    print(list(zip(unique_counts, occurrences)))
+    distribution = {
+        int(count): int(occ) for count, occ in zip(unique_counts, occurrences)
+    }
+
+    return {
+        "guess": guess,
+        "total_remaining": N,
+        "expected_remaining": expected_remaining,
+        "distribution": distribution
+    }
+
+#endregion
 if __name__ == "__main__":
 
     try:
@@ -198,18 +272,8 @@ if __name__ == "__main__":
         save_feedback_data(words, feedback_matrix)
 
     with cProfile.Profile() as pr:
-        entropies, remaining = next_best_guesses(words, feedback_matrix, word_to_index, [])
-
-
-        top_indices = np.argsort(entropies)[::-1][:20]
-        results = [(words[i], float(entropies[i])) for i in top_indices]
-
-
-        print(f"\n{len(remaining)} possible answers remain.")
-        print(f"Top {20} guesses:")
-        for w, H in results:
-            print(f"  {w:<10}  {H:.3f} bits")
-
+        results = next_best_guesses(words, feedback_matrix, word_to_index, [])
+        print(results)
 
     stats = pstats.Stats(pr)
     stats.sort_stats(pstats.SortKey.TIME).print_stats(20)

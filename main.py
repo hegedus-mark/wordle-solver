@@ -1,7 +1,7 @@
 import random
 import json
 
-from solver import filter_words, get_and_decode_feedback, load_best_guesses_for_history, load_feedback_data
+from solver import filter_words, get_and_decode_feedback, load_distribution_data, load_options_sections, load_feedback_data
 from flask import Flask, render_template, request, jsonify, session
 
 app = Flask(__name__)
@@ -59,38 +59,20 @@ def best_options():
     history = json.loads(history)
     history = [(str.lower(hist["guess"]), hist["feedback"]) for hist in history]
 
+    data = load_options_sections(history)
+    
+    # Ensure all numbers are Python floats
+    for key in ["viable_answers", "top_entropy", "bot_entropy", "top_remaining", "bot_remaining"]:
+        for item in data.get(key, []):
+            if "entropy" in item:
+                item["entropy"] = float(item["entropy"])
+            if "expected_remaining" in item:
+                item["expected_remaining"] = float(item["expected_remaining"])
 
-    results, remaining = load_best_guesses_for_history(history)
+    # Total remaining words
+    data["total_remaining"] = data.get("remaining_count", len(data.get("viable_answers", [])))
 
-    top_n = 10
-
-    sorted_by_entropy = sorted(results, key=lambda x: x[1], reverse=True)
-    top_entropy = sorted_by_entropy[:top_n]
-    bot_entropy = sorted_by_entropy[-top_n:]
-
-    sorted_by_expected = sorted(results, key=lambda x: x[2])
-    top_expected_remaining = sorted_by_expected[:top_n]
-    bot_expected_remaining = sorted_by_expected[-top_n:]
-
-    return jsonify({
-        "top_entropy": [
-            {"word": w, "entropy": e, "expected_remaining": er} 
-            for w, e, er in top_entropy
-        ],
-        "bot_entropy":[
-            {"word": w, "entropy": e, "expected_remaining": er} 
-            for w, e, er in bot_entropy
-        ],
-        "top_expected_remaining": [
-            {"word": w, "entropy": e, "expected_remaining": er} 
-            for w, e, er in top_expected_remaining
-        ],
-        "bot_expected_remaining":[
-            {"word": w, "entropy": e, "expected_remaining": er} 
-            for w, e, er in bot_expected_remaining
-        ],
-        "total_remaining": len(remaining)
-    })
+    return jsonify(data)
 
 # Distribution page
 @app.route('/distribution')
@@ -103,21 +85,9 @@ def distribution_data():
     guess = data.get('guess', '').lower()
     history = data.get('history', [])
 
-    words, feedback_matrix, word_to_index = load_feedback_data()
+    results = load_distribution_data(guess, history)
 
-    remaining = filter_words(words, feedback_matrix, word_to_index, [
-        (h["guess"].lower(), h["feedback"]) for h in history
-    ])
-    pattern_counts = {}
-    for word in remaining:
-        fb_str = get_and_decode_feedback(guess, word)
-        pattern_counts[fb_str] = pattern_counts.get(fb_str, 0) + 1
-
-    return jsonify({
-        "guess": guess,
-        "total_remaining": len(remaining),
-        "pattern_counts": pattern_counts
-    })
+    return jsonify(results)
 
 
 if __name__ == '__main__':

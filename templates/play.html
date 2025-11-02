@@ -106,10 +106,21 @@
         <div id="options-panel">
             <div id="loading-options" style="display: none;">Loading...</div>
             <div id="options-panel">
-                <div id="total-remaining" style="font-weight:bold; margin-bottom:10px;">Remaining words: 0</div>
+                <div id="total-remaining"
+                    style="font-weight:bold; margin-bottom:10px;">Remaining
+                    words: 0</div>
 
                 <div class="options-sections">
-                    <!-- Entropy section -->
+                    <!-- Column 1: Viable Answers -->
+                    <div class="options-section">
+                        <h3>Viable Answers</h3>
+                        <div class="options-subsection">
+                            <h4>Top 20</h4>
+                            <ul id="viable-answers"></ul>
+                        </div>
+                    </div>
+
+                    <!-- Column 2: Entropy -->
                     <div class="options-section">
                         <h3>Entropy</h3>
                         <div class="options-subsection">
@@ -122,16 +133,16 @@
                         </div>
                     </div>
 
-                    <!-- Expected remaining section -->
+                    <!-- Column 3: Expected Remaining -->
                     <div class="options-section">
                         <h3>Expected Remaining</h3>
                         <div class="options-subsection">
                             <h4>Top 10</h4>
-                            <ul id="expected-top"></ul>
+                            <ul id="top-remaining"></ul>
                         </div>
                         <div class="options-subsection">
                             <h4>Bottom 10</h4>
-                            <ul id="expected-bottom"></ul>
+                            <ul id="bot-remaining"></ul>
                         </div>
                     </div>
                 </div>

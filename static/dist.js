@@ -40,51 +40,61 @@ function renderHistoryGrid(history) {
 function fetchDistribution(guess, history) {
     fetch("/distribution_data", {
         method: "POST",
-        headers: {"Content-Type": "application/json"},
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ guess, history })
     })
-    .then(res => res.json())
-    .then(data => renderChart(data));
+        .then(res => res.json())
+        .then(data => renderChart(data));
 }
 
-function feedbackColor(p) {
-    const greens = (p.match(/G/g) || []).length;
-    const yellows = (p.match(/Y/g) || []).length;
-    if (greens >= 3) return "#6aaa64"; // green
-    if (yellows >= 3) return "#c9b458"; // yellow
-    return "#787c7e"; // gray
-}
-
-function feedbackComplexity(p) {
-    const greens = [...p].filter(c => c === 'G').length;
-    const yellows = [...p].filter(c => c === 'Y').length;
-    return greens * 10 + yellows; // prioritize greens first
-}
 
 function renderChart(data) {
     const ctx = document.getElementById("distributionChart").getContext("2d");
-    
-    const entries = Object.entries(data.pattern_counts)
-        .sort((a, b) => feedbackComplexity(a[0]) - feedbackComplexity(b[0]));
 
-    const labels = entries.map(([pattern]) => pattern);
+    // Extract and sort distribution data by remaining word count (numeric)
+    const entries = Object.entries(data.distribution)
+        .map(([remaining, count]) => [Number(remaining), count])
+        .sort((a, b) => a[0] - b[0]);
+
+    const labels = entries.map(([remaining]) => remaining);
     const values = entries.map(([_, count]) => count);
 
-    new Chart(ctx, {
+    // Clear any previous chart before drawing a new one
+    if (window.currentChart) {
+        window.currentChart.destroy();
+    }
+
+    window.currentChart = new Chart(ctx, {
         type: 'bar',
         data: {
             labels,
             datasets: [{
-                label: "Possible Answers per Feedback",
+                label: "Possible Answers → Remaining Word Count",
                 data: values,
-                backgroundColor: labels.map(l => feedbackColor(l))
+                backgroundColor: "#6aaa64" 
             }]
         },
         options: {
-            indexAxis: 'y',
             scales: {
-                x: { title: { display: true, text: "Number of Words" } },
-                y: { title: { display: true, text: "Feedback Pattern" } }
+                x: {
+                    title: { display: true, text: "Words Remaining After Guess" }
+                },
+                y: {
+                    title: { display: true, text: "Number of Possible Answers" },
+                    beginAtZero: true
+                }
+            },
+            plugins: {
+                title: {
+                    display: true,
+                    text: `Expected Remaining: ${data.expected_remaining.toFixed(2)}`
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (context) =>
+                            `${context.parsed.y} answers leave ${context.parsed.x} remaining`
+                    }
+                }
             }
         }
     });
