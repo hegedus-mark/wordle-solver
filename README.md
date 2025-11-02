@@ -22,6 +22,6 @@ pip install -r requirements.txt
 
 1. Run `solver.py` once to generate the caches and to simulate the strategy.
 2. Run `main.py` and go to **localhost:5000**
-3. Profit 💰
+3. Profit 
 
 ![Wordle Solver screenshot](screenshot.png)
