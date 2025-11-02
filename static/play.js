@@ -43,13 +43,7 @@ function initGrid() {
 }
 
 function restartGame() {
-    currentRow = 0;
-    currentCol = 0;
-    answerLength = 5;
-    maxGuesses = 6
-    gridCells = [];
-    guessArray = [];
-    startGame()
+    window.location.reload();
 }
 
 function activateCell(row, col) {

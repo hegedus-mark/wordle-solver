@@ -1,15 +1,18 @@
 import random
 import json
 
-from solver import filter_words, get_and_decode_feedback, load_distribution_data, load_options_sections, load_feedback_data
+from solver import filter_words, get_and_decode_feedback, load_distribution_data, load_distribution_from_csv, load_options_sections, load_feedback_data, load_summary
 from flask import Flask, render_template, request, jsonify, session
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey123"
 
-
 @app.route('/')
-def home():
+def index():
+    return render_template('index.html')
+
+@app.route('/play')
+def play():
     return render_template('play.html')
 
 @app.route('/start_game')
@@ -89,6 +92,40 @@ def distribution_data():
 
     return jsonify(results)
 
+@app.route("/simulation_dashboard")
+def simulation_dashboard():
+    # Default strategy
+    strategy = "entropy"
+    summary = load_summary(strategy)
+    distribution = load_distribution_from_csv(strategy)
+
+    #quick fix
+    summary["start_ts"] = summary["start_ts"].isoformat()
+    distribution = {str(k): v for k, v in summary["rounds_distribution"].items()}
+
+
+    if not summary or not distribution:
+        return "No simulation data found. Please run a simulation first."
+
+    json.dumps(summary)  # Ensure serializable
+    json.dumps(distribution)  # Ensure serializable
+    return render_template("simulation_dashboard.html",
+                           summary=summary,
+                           distribution=distribution,
+                           strategy=strategy)
+
+
+@app.route("/data/<strategy>")
+def data(strategy):
+    summary = load_summary(strategy)
+    distribution = load_distribution_from_csv(strategy)
+    if not summary or not distribution:
+        return jsonify({"error": "No data found"}), 404
+
+    return jsonify({
+        "summary": summary,
+        "distribution": distribution
+    })
 
 if __name__ == '__main__':
     app.run(debug=True)

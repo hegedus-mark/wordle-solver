@@ -1,0 +1,87 @@
+<!-- templates/base.html -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ title or "Wordle Strategy Dashboard" }}</title>
+
+  <link href="{{ url_for('static', filename='main.css') }}" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+</head>
+
+<body class="bg-gray-50 text-gray-900 min-h-screen flex flex-col">
+
+  <!-- 🌐 Navbar -->
+  <nav class="bg-gray-900 text-white shadow-md">
+    <div class="max-w-6xl mx-auto px-4">
+      <div class="flex justify-between items-center h-16">
+        <!-- Brand -->
+        <a href="{{ url_for('index') }}"
+          class="text-xl font-bold tracking-tight hover:text-green-400">
+          Wordle Solver
+        </a>
+
+        <!-- Mobile menu toggle -->
+        <button id="menu-btn"
+          class="md:hidden flex items-center text-gray-300 hover:text-white focus:outline-none">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor"
+            viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+
+        <!-- Links -->
+        <ul id="menu" class="hidden md:flex space-x-6 font-medium">
+          <li>
+            <a href="{{ url_for('index') }}"
+              class="hover:text-green-400 transition {{ 'text-green-400 border-b-2 border-green-400 pb-1' if request.endpoint == 'index' else '' }}">
+              Home
+            </a>
+          </li>
+          <li>
+            <a href="{{ url_for('play') }}"
+              class="hover:text-green-400 transition {{ 'text-green-400 border-b-2 border-green-400 pb-1' if request.endpoint == 'play' else '' }}">
+              Play
+            </a>
+          </li>
+          <li>
+            <a href="{{ url_for('simulation_dashboard') }}"
+              class="hover:text-green-400 transition {{ 'text-green-400 border-b-2 border-green-400 pb-1' if request.endpoint == 'simulation_dashboard' else '' }}">
+              Simulation Results
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Mobile dropdown -->
+    <div id="mobile-menu"
+      class="md:hidden hidden bg-gray-800 border-t border-gray-700">
+      <ul class="flex flex-col space-y-2 p-4">
+        <li><a href="{{ url_for('index') }}"
+            class="block hover:text-green-400 {{ 'text-green-400' if request.endpoint == 'index' else '' }}">Home</a>
+        </li>
+        <li><a href="{{ url_for('play') }}"
+            class="block hover:text-green-400 {{ 'text-green-400' if request.endpoint == 'play' else '' }}">Play</a>
+        </li>
+        <li><a href="{{ url_for('simulation_dashboard') }}"
+            class="block hover:text-green-400 {{ 'text-green-400' if request.endpoint == 'simulation_dashboard' else '' }}">Simulation
+            Results</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+
+</body>
+
+</html>

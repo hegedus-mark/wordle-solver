@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Simulation Dashboard</h1>
+<h3>Strategy: {{ strategy }}</h3>
+
+<table>
+  <tr>
+    <th>Metric</th>
+    <th>Value</th>
+  </tr>
+  <tr>
+    <td>Total Games</td>
+    <td>{{ summary.total_games }}</td>
+  </tr>
+  <tr>
+    <td>Wins</td>
+    <td>{{ summary.wins }}</td>
+  </tr>
+  <tr>
+    <td>Fails</td>
+    <td>{{ summary.fails }}</td>
+  </tr>
+  <tr>
+    <td>Win Rate</td>
+    <td>{{ "%.2f" | format(summary.win_rate * 100) }}%</td>
+  </tr>
+  <tr>
+    <td>Mean Rounds (Wins)</td>
+    <td>{{ "%.2f" | format(summary.mean_rounds_win_only) }}</td>
+  </tr>
+  <tr>
+    <td>Median Rounds (Wins)</td>
+    <td>{{ "%.2f" | format(summary.median_rounds_win_only) }}</td>
+  </tr>
+  <tr>
+    <td>Mean Rounds (All)</td>
+    <td>{{ "%.2f" | format(summary.mean_rounds_including_fails) }}</td>
+  </tr>
+</table>
+
+<div id="chart-container">
+  <canvas id="distributionChart"></canvas>
+</div>
+
+<script>
+  const distribution = {{ distribution | tojson() }};
+  const ctx = document.getElementById('distributionChart').getContext('2d');
+
+  // Convert distribution object to sorted numeric data
+  const entries = Object.entries(distribution)
+    .map(([round, count]) => [round, count])
+    .sort((a, b) => {
+      if (a[0] === "fail") return 1;
+      if (b[0] === "fail") return -1;
+      return Number(a[0]) - Number(b[0]);
+    });
+
+  const labels = entries.map(([round]) => round);
+  const values = entries.map(([_, count]) => count);
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Games by Guesses Taken',
+        data: values,
+        backgroundColor: '#6aaa64'
+      }]
+    },
+    options: {
+      scales: {
+        x: { title: { display: true, text: 'Guesses' } },
+        y: { beginAtZero: true, title: { display: true, text: 'Number of Games' } }
+      },
+      plugins: {
+        title: { display: true, text: 'Round Distribution' },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.parsed.y} games solved in ${ctx.parsed.x} guesses`
+          }
+        }
+      }
+    }
+  });
+</script>
+{% endblock %}

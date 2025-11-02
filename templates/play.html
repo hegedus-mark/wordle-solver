@@ -1,104 +1,6 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Play Wordle</title>
-    <style>
-        body {
-            font-family: sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-        }
-
-        .main-container {
-            display: flex;
-            gap: 20px;
-            padding: 20px;
-            width: 100vw;
-            box-sizing: border-box;
-        }
-
-        .wordle_container {
-            flex: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        #grid {
-            display: grid;
-            gap: 5px;
-            margin-bottom: 20px;
-            max-width: 50vw;
-        }
-
-        .cell {
-            width: 60px;
-            height: 60px;
-            border: 2px solid #ccc;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 32px;
-            font-weight: bold;
-            cursor: pointer;
-            text-transform: uppercase;
-            user-select: none;
-        }
-
-        .cell.active {
-            border-color: black;
-        }
-
-        .G {
-            background-color: green;
-            color: white;
-        }
-
-        .Y {
-            background-color: gold;
-            color: black;
-        }
-
-        .B {
-            background-color: lightgray;
-            color: black;
-        }
-
-        button {
-            padding: 5px 10px;
-            font-size: 16px;
-        }
-
-        .options-sections {
-            display: flex;
-            gap: 40px;
-        }
-
-        .options-section {
-            flex: 1 1 auto;
-        }
-
-        .options-subsection ul {
-            list-style: none;
-            padding: 0;
-            margin: 0 0 10px 0;
-        }
-
-        .options-subsection li {
-            font-family: monospace;
-            margin-bottom: 3px;
-        }
-    </style>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-</head>
-
-<body>
-    <h1>Play Wordle</h1>
+{% extends "base.html" %}
+{% block content %}
+<div class="flex flex-col justify-center content-center">
     <div class="main-container">
         <div class="wordle_container">
             <div id="grid"></div>
@@ -151,11 +53,15 @@
     </div>
 
     <div class="btn-container">
-        <button onclick="submitGuess()">Enter</button>
-        <button onclick="restartGame()">Restart</button>
+        <button
+            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            onclick="submitGuess()">Enter</button>
+        <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2
+        px-4 rounded" onclick="restartGame()">Restart</button>
     </div>
-    <p id="message"></p>
-    <script src="{{ url_for('static', filename='play.js') }}"></script>
-</body>
+</div>
 
-</html>
+<p id="message"></p>
+<script src="{{ url_for('static', filename='play.js') }}"></script>
+
+{% endblock %}

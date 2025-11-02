@@ -1,2 +1,5 @@
 __pycache__/
 .venv/
+simulation_results/
+feedback_matrix.npy
+no_history_guesses_cache.npz
